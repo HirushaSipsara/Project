@@ -1,0 +1,541 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+#define NUM_DICE 5
+#define NUM_ROLLS 3
+#define NUM_ROUNDS 13
+
+// Function declarations
+void user_turn(int dice[], int user_score[], int user_scorecard[]);
+void select_scoring(int dice[], int user_scorecard[], int user_score[]);
+int calculate_user_score(int dice[], int category, int user_score[]);
+int has_category_been_chosen(int category, int user_score[]);
+void roll_dice(int dice[], int keep_dices[]);
+void print_dice(int dice[]);
+void print_score(int score[]);
+void computer_turn(int dice[], int computer_score[], int computer_scorecard[]);
+int calculate_computer_score(int dice[], int category, int computer_score[]);
+void evaluate_dice(int dice[], int keep[]);
+int choose_best_category(int dice[], int computer_score[], int computer_scorecard[]);
+
+// User's Turn
+void user_turn(int dice[], int user_score[], int user_scorecard[]){
+    int roll_count = 0;
+    int keep_dices[NUM_DICE] = {0};
+    char choice;
+
+    while (roll_count < NUM_ROLLS)
+    {
+        if (roll_count == 0) {
+            printf("1st Roll \n");
+        } else if (roll_count == 1) {
+            printf("2nd Roll \n");
+        } else {
+            printf("3rd Roll \n");
+        }
+
+        roll_dice(dice, keep_dices);
+        
+        
+        if (roll_count < NUM_ROLLS - 1) {
+            printf("Would you like to keep any dice? (y/n): ");
+            scanf(" %c", &choice);
+            if (choice == 'y' || choice == 'Y') {
+                // Ask the user which dice to keep
+                for (int i = 0; i < NUM_DICE; i++) {
+                    printf("Keep dice %d (value: %d)? (1 = yes, 0 = no): ", i + 1, dice[i]);
+                    scanf("%d", &keep_dices[i]);  // 1 = keep, 0 = re-roll
+                }
+            }
+        }
+
+        // Ask if they want to roll again or stop rolling
+        if (roll_count < NUM_ROLLS - 1) {
+            printf("Do you want to re-roll remaining dice? (y/n): ");
+            scanf(" %c", &choice);
+            if (choice == 'n' || choice == 'N') {
+                break;  // Stop rolling and go to score selection
+            }
+        }
+        roll_count++;
+    }
+    select_scoring(dice, user_scorecard, user_score);
+}
+
+// Select scoring category
+void select_scoring(int dice[], int user_scorecard[], int user_score[]) {
+    int category;
+    char *scoringOptions[] = {
+        "0 = Ones",
+        "1 = Twos",
+        "2 = Threes",
+        "3 = Fours",
+        "4 = Fives",
+        "5 = Sixes",
+        "6 = Three of a Kind",
+        "7 = Four of a Kind",
+        "8 = Full House",
+        "9 = Small Straight",
+        "10 = Large Straight",
+        "11 = Yahtzee",
+        "12 = Chance"
+    };
+
+    do {
+        printf("Available scoring categories:\n");
+        for (int i = 0; i < NUM_ROUNDS; i++) {
+            if (user_scorecard[i] == 0) {
+                printf("%s\n", scoringOptions[i]);  // Print only unchosen categories
+            }
+        }
+        printf("Now choose a category in the above (0-12): ");
+        scanf("%d", &category);
+        
+        if (category < 0 || category > 12) {
+            printf("Invalid category. Please select a valid option.\n");
+        } else if (has_category_been_chosen(category, user_scorecard)) {
+            printf("Category already chosen. Select another.\n");
+        }
+    } while (category < 0 || category > 12 || has_category_been_chosen(category, user_scorecard));    
+        
+    user_score[category] = calculate_user_score(dice, category, user_score);
+    user_scorecard[category] = 1;  // Mark category as chosen
+}
+
+
+// Calculate Score based on category
+int calculate_user_score(int dice[], int category, int user_score[]) {
+    int score = 0, ones = 0, twos = 0, threes = 0, fours = 0, fives = 0, sixs = 0;
+    for (int i = 0; i < NUM_DICE; i++) {
+        switch (dice[i]) {
+            case 1: ones++; break;
+            case 2: twos++; break;
+            case 3: threes++; break;
+            case 4: fours++; break;
+            case 5: fives++; break;
+            case 6: sixs++; break;
+        }
+    }
+    
+    // Implement scoring based on category
+    switch (category) {
+        case 0: score = ones; break;  
+        case 1: score = twos * 2; break; 
+        case 2: score = threes * 3; break; 
+        case 3: score = fours * 4; break;
+        case 4: score = fives * 5; break; 
+        case 5: score = sixs * 6; break;  
+        case 6: // Three of a Kind
+            if(ones >= 3 || twos >= 3 || threes >= 3 || fours >= 3 || fives >= 3 || sixs >= 3){
+                score = dice[0] + dice[1] + dice[2] + dice[3] + dice[4];
+            }else{
+                score = 0;
+            }
+            break;
+        case 7: // Four of a Kind
+            if(ones >= 4 || twos >= 4 || threes >= 4 || fours >= 4 || fives >= 4 || sixs >= 4){
+                score = dice[0] + dice[1] + dice[2] + dice[3] + dice[4];
+            }else{
+                score = 0;
+            }
+            break;
+        case 8:  // Full House
+            if ((ones == 3 || twos == 3 || threes == 3 || fours == 3 || fives == 3 || sixs == 3) &&
+                (ones == 2 || twos == 2 || threes == 2 || fours == 2 || fives == 2 || sixs == 2)) {
+                score = 25;
+            } else {
+                score = 0;
+            }
+            break;
+        case 9: // Small Straight
+            if ((ones && twos && threes && fours) || (twos && threes && fours && fives) || 
+                (threes && fours && fives && sixs)) {
+                score = 30;
+            }else{
+                score = 0;
+            }
+            break;
+        case 10: // Large Straight
+            if ((ones && twos && threes && fours && fives) || (twos && threes && fours && fives && sixs)) {
+                score = 40;
+            }else{
+                score = 0;
+            }
+            break;
+        case 11: // Yahtzee
+            if (ones == 5 || twos == 5 || threes == 5 || fours == 5 || fives == 5 || sixs == 5) {
+                score = 50;
+            }else{
+                score = 0;
+            }
+            break;
+        case 12: // Chance
+            score = dice[0] + dice[1] + dice[2] + dice[3] + dice[4]; 
+            break;
+        default:
+            printf("Error.\n");
+            break;
+    }   
+     return score;
+}
+
+// Calculate the score based on the selected category
+int calculate_computer_score(int dice[], int category, int computer_score[]) {
+    int score = 0;
+    int counts[7] = {0}; // To count occurrences of each die (1-6)
+
+    // Count occurrences of each dice value
+    for (int i = 0; i < NUM_DICE; i++) {
+        counts[dice[i]]++;
+    }
+
+    // Logic for calculating the score based on the category
+    switch (category) {
+        case 0: score = counts[1]; break;  // Ones
+        case 1: score = counts[2] * 2; break;  // Twos
+        case 2: score = counts[3] * 3; break;  // Threes
+        case 3: score = counts[4] * 4; break;  // Fours
+        case 4: score = counts[5] * 5; break;  // Fives
+        case 5: score = counts[6] * 6; break;  // Sixes
+        case 6: // Three of a kind
+            for (int j = 1; j <= 6; j++) {
+                if (counts[j] >= 3) {
+                    score = dice[0] + dice[1] + dice[2] + dice[3] + dice[4]; // Total of the dice
+                    break; // Exit once we find a valid score
+                }
+            }
+            break;
+        case 7: // Four of a kind
+            for (int j = 1; j <= 6; j++) {
+                if (counts[j] >= 4) {
+                    score = dice[0] + dice[1] + dice[2] + dice[3] + dice[4]; // Total of the dice
+                    break; // Exit once we find a valid score
+                }
+            }
+            break;
+        case 8: // Full House
+            for (int j = 1; j <= 6; j++) {
+                if (counts[j] == 3) {
+                    for (int k = 1; k <= 6; k++) {
+                        if (k != j && counts[k] >= 2) {
+                            score = 25; // Fixed score for a full house
+                            break; // Exit once we find a valid score
+                        }
+                    }
+                }
+            }
+            break;
+        case 9: // Small Straight
+            if ((counts[1] && counts[2] && counts[3] && counts[4]) || // 1-2-3-4
+                (counts[2] && counts[3] && counts[4] && counts[5]) || // 2-3-4-5
+                (counts[3] && counts[4] && counts[5] && counts[6])) {
+                score = 30; // Fixed score for a small straight
+            }
+            break;
+        case 10: // Large Straight
+            if ((counts[1] && counts[2] && counts[3] && counts[4] && counts[5]) || // 1-2-3-4-5
+                (counts[2] && counts[3] && counts[4] && counts[5] && counts[6])) {
+                score = 40; // Fixed score for a large straight
+            }
+            break;
+        case 11: // Yahtzee
+            for (int j = 1; j <= 6; j++) {
+                if (counts[j] == 5) {
+                    score = 50; // Fixed score for a yahtzee
+                    break;
+                }
+            }
+            break;
+        case 12: // Chance
+            score = dice[0] + dice[1] + dice[2] + dice[3] + dice[4]; // Total of the dice
+            break;
+        default:
+            break;
+    }
+
+    return score;
+}
+
+// Check if category has been chosen already
+int has_category_been_chosen(int category, int user_scorecard[]) {
+    return user_scorecard[category] != 0;
+}
+
+// Roll Dice Function
+void roll_dice(int dice[], int keep_dices[]) {
+    for (int i = 0; i < NUM_DICE; i++) {
+        if (keep_dices[i] == 0) {  // Roll dice that are not kept
+            dice[i] = rand() % 6 + 1;  // Assign a random number between 1 and 6
+        }
+    }
+    print_dice(dice);
+}
+
+// Print Dice
+void print_dice(int dice[]) {
+    printf("Dice: ");
+    for (int i = 0; i < NUM_DICE; i++) {
+        printf("%d ", dice[i]);
+    }
+    printf("\n");
+}
+
+// Print the scorecard
+void print_score(int score[]) {
+    printf("Scorecard: ");
+    for (int i = 0; i < NUM_ROUNDS; i++) {
+        printf("%d ", score[i]);
+    }
+    printf("\n");
+}
+
+// Computer's Turn
+void computer_turn(int dice[], int computer_score[], int computer_scorecard[]) {
+    int roll_count = 0;
+    int keep_dices[NUM_DICE] = {0};  // The computer decides which dice to keep
+
+    while (roll_count < NUM_ROLLS) {
+        roll_dice(dice, keep_dices);  // Roll the dice
+        roll_count++;
+
+        // If it's not the last roll, evaluate the dice and decide which to keep
+        if (roll_count < NUM_ROLLS) {
+            evaluate_dice(dice, keep_dices);
+        }
+    }
+
+    // After finishing rolls, choose the best scoring category
+    int best_category = choose_best_category(dice, computer_score, computer_scorecard);
+
+    if (best_category != -1) { // Check if a valid category was found
+        computer_score[best_category] = calculate_score(dice, best_category, computer_score);
+        computer_scorecard[best_category] = 1; // Mark category as chosen
+    } else {
+        printf("No valid category found for scoring!\n");
+    }
+}
+
+
+// Evaluate Dice (this part can be improved based on the logic you want)
+void evaluate_dice(int dice[], int keep[]) {
+    int counts[7] = {0}; // To count occurrences of each die (1-6)
+
+    // Count occurrences of each dice value
+    for (int i = 0; i < NUM_DICE; i++) {
+        counts[dice[i]]++;
+    }
+
+    // Reset the keep array to 0 (don't keep any dice initially)
+    for (int i = 0; i < NUM_DICE; i++) {
+        keep[i] = 0;
+    }
+
+    // Check for Yahtzee
+    if (counts[1] == 5 || counts[2] == 5 || counts[3] == 5 || 
+        counts[4] == 5 || counts[5] == 5 || counts[6] == 5) {
+        for (int i = 0; i < NUM_DICE; i++) {
+            keep[i] = 1;  // Keep all dice for Yahtzee
+        }
+        return;
+    }
+
+    // Check for Three-of-a-kind and Four-of-a-kind
+    for (int j = 1; j <= 6; j++) {
+        if (counts[j] >= 3) { // Three of a kind
+            for (int i = 0; i < NUM_DICE; i++) {
+                if (dice[i] == j) {
+                    keep[i] = 1;  // Keep all dice that match the value
+                }
+            }
+            return; // Exit after deciding to keep for Three of a Kind
+        }
+        if (counts[j] >= 4) { // Four of a kind
+            for (int i = 0; i < NUM_DICE; i++) {
+                if (dice[i] == j) {
+                    keep[i] = 1;  // Keep all dice that match the value
+                }
+            }
+            return; // Exit after deciding to keep for Four of a Kind
+        }
+    }
+
+    // Check for Full House
+    int three_value = -1;
+    for (int j = 1; j <= 6; j++) {
+        if (counts[j] == 3) {
+            three_value = j;
+            break;
+        }
+    }
+    if (three_value != -1) {
+        for (int j = 1; j <= 6; j++) {
+            if (j != three_value && counts[j] >= 2) {
+                for (int i = 0; i < NUM_DICE; i++) {
+                    if (dice[i] == three_value || dice[i] == j) {
+                        keep[i] = 1;  // Keep all dice for a Full House
+                    }
+                }
+                return; // Exit after deciding to keep for Full House
+            }
+        }
+    }
+
+    // Check for Small or Large Straight
+    if ((counts[1] && counts[2] && counts[3] && counts[4]) || // 1-2-3-4
+        (counts[2] && counts[3] && counts[4] && counts[5]) || // 2-3-4-5
+        (counts[3] && counts[4] && counts[5] && counts[6])) { // 3-4-5-6
+        // Keep the dice that form a small straight
+        for (int i = 0; i < NUM_DICE; i++) {
+            if (dice[i] >= 1 && dice[i] <= 4) {
+                keep[i] = 1;  // Keep the dice
+            }
+        }
+        return;
+    }
+
+    // Keep any pairs
+    for (int j = 1; j <= 6; j++) {
+        if (counts[j] >= 2) {
+            for (int i = 0; i < NUM_DICE; i++) {
+                if (dice[i] == j) {
+                    keep[i] = 1;  // Keep all dice that form a pair
+                }
+            }
+            break; // Keep the first pair found
+        }
+    }
+}
+
+
+int choose_best_category(int dice[], int computer_score[], int computer_scorecard[]) {
+    int category = -1;
+    int max_score = 0;
+    int counts[7] = {0}; // To count occurrences of each die (1-6)
+
+    // Count occurrences of each dice value
+    for (int i = 0; i < NUM_DICE; i++) {
+        counts[dice[i]]++;
+    }
+
+    // Check for the highest scoring category based on the dice roll
+    for (int i = 0; i < NUM_ROUNDS; i++) {
+        if (computer_scorecard[i] == 0) {  // Only evaluate unchosen categories
+            int score = 0;
+
+            switch (i) {
+                case 0: score = counts[1]; break;  // Ones
+                case 1: score = counts[2] * 2; break;  // Twos
+                case 2: score = counts[3] * 3; break;  // Threes
+                case 3: score = counts[4] * 4; break;  // Fours
+                case 4: score = counts[5] * 5; break;  // Fives
+                case 5: score = counts[6] * 6; break;  // Sixes
+                case 6:  // Three-of-a-kind
+                    for (int j = 1; j <= 6; j++) {
+                        if (counts[j] >= 3) {
+                            score = dice[0] + dice[1] + dice[2] + dice[3] + dice[4]; // Total of the dice
+                            break; // Exit once we find a valid score
+                        }
+                    }
+                    break;
+                case 7:  // Four-of-a-kind
+                    for (int j = 1; j <= 6; j++) {
+                        if (counts[j] >= 4) {
+                            score = dice[0] + dice[1] + dice[2] + dice[3] + dice[4]; // Total of the dice
+                            break; // Exit once we find a valid score
+                        }
+                    }
+                    break;
+                case 8:  // Full House (3-of-a-kind + a pair)
+                    for (int j = 1; j <= 6; j++) {
+                        if (counts[j] == 3) {
+                            for (int k = 1; k <= 6; k++) {
+                                if (k != j && counts[k] >= 2) {
+                                    score = 25; // Fixed score for a full house
+                                    break; // Exit once we find a valid score
+                                }
+                            }
+                        }
+                    }
+                    break;
+                case 9:  // Small Straight
+                    if ((counts[1] && counts[2] && counts[3] && counts[4]) || // 1-2-3-4
+                        (counts[2] && counts[3] && counts[4] && counts[5]) || // 2-3-4-5
+                        (counts[3] && counts[4] && counts[5] && counts[6])) { // 3-4-5-6
+                        score = 30;
+                    }
+                    break;
+                case 10:  // Large Straight
+                    if ((counts[1] && counts[2] && counts[3] && counts[4] && counts[5]) || // 1-2-3-4-5
+                        (counts[2] && counts[3] && counts[4] && counts[5] && counts[6])) { // 2-3-4-5-6
+                        score = 40;
+                    }
+                    break;
+                case 11:  // Yahtzee
+                    for (int j = 1; j <= 6; j++) {
+                        if (counts[j] == 5) {
+                            score = 50; // Fixed score for Yahtzee
+                            break; // Exit once we find a valid score
+                        }
+                    }
+                    break;
+                case 12:  // Chance (sum of all dice)
+                    score = dice[0] + dice[1] + dice[2] + dice[3] + dice[4];
+                    break;
+            }
+
+            // Update the best category if this one has a higher score
+            if (score > max_score) {
+                max_score = score;
+                category = i;
+            }
+        }
+    }
+    return category;
+}
+
+
+
+
+int main() {
+    srand(time(NULL));
+
+    int user_score[NUM_ROUNDS] = {0};
+    int computer_score[NUM_ROUNDS] = {0};
+    int user_scorecard[NUM_ROUNDS]={0};
+    int computer_scorecard[NUM_ROUNDS]={0};
+    int dice[NUM_DICE] = {0};
+    
+    for (int i = 0; i < NUM_ROUNDS; i++) {
+        printf("\nRound %d\n", i + 1);
+        
+        // Human Player
+        printf("User's turn:\n");
+        user_turn(dice, user_score, user_scorecard);
+        printf("User's score so far:\n");
+        print_score(user_score);
+        
+        // Computer Player
+        printf("\nComputer's turn:\n");
+        computer_turn(dice, computer_score, computer_scorecard);
+        printf("Computer's score so far:\n");
+        print_score(computer_score);
+    }
+    
+    // Final Scores
+    int human_total = 0, computer_total = 0;
+    for (int i = 0; i < NUM_ROUNDS; i++) {
+        human_total += user_score[i];
+        computer_total += computer_score[i];
+    }
+    
+    printf("\nFinal Scores: Human = %d and Computer = %d\n", human_total, computer_total);
+    if (human_total > computer_total)
+        printf("Human wins!\n");
+    else if (computer_total > human_total)
+        printf("Computer wins!\n");
+    else
+        printf("It's a tie!\n");
+
+    return 0;
+}
