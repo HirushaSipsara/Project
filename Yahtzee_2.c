@@ -249,70 +249,77 @@ void evaluate_dice(int dice[], int keep[], int computer_scorecard[]) {
     }
 
     // Yahtzee (five of the same number)
-    if (ones == 5 || twos == 5 || threes == 5 || fours == 5 || fives == 5 || sixes == 5) {
-        for (int i = 0; i < NUM_DICE; i++) {
-            keep[i] = 1;  // Keep all dice for Yahtzee
+    if (computer_scorecard[11] == 0) {
+        if (ones == 5 || twos == 5 || threes == 5 || fours == 5 || fives == 5 || sixes == 5) {
+            for (int i = 0; i < NUM_DICE; i++) {
+                keep[i] = 1;  // Keep all dice for Yahtzee
+            }
+            return;
         }
-        return;
     }
 
     // Three-of-a-kind
-    if (ones >= 3 || twos >= 3 || threes >= 3 || fours >= 3 || fives >= 3 || sixes >= 3) {
-        int value_to_keep = (ones >= 3) ? 1 : (twos >= 3) ? 2 : (threes >= 3) ? 3 :
-                            (fours >= 3) ? 4 : (fives >= 3) ? 5 : 6;
-        for (int i = 0; i < NUM_DICE; i++) {
-            if (dice[i] == value_to_keep) {
-                keep[i] = 1;  // Keep all dice that match the value
+    if (computer_scorecard[6] == 0) {
+        if (ones >= 3 || twos >= 3 || threes >= 3 || fours >= 3 || fives >= 3 || sixes >= 3) {
+            int value_to_keep = (ones >= 3) ? 1 : (twos >= 3) ? 2 : (threes >= 3) ? 3 :
+                                (fours >= 3) ? 4 : (fives >= 3) ? 5 : 6;
+            for (int i = 0; i < NUM_DICE; i++) {
+                if (dice[i] == value_to_keep) {
+                    keep[i] = 1;  // Keep all dice that match the value
+                }
             }
+            return;
         }
-        return;
     }
 
     // Four-of-a-kind
-    if (ones >= 4 || twos >= 4 || threes >= 4 || fours >= 4 || fives >= 4 || sixes >= 4) {
-        int value_to_keep = (ones >= 4) ? 1 : (twos >= 4) ? 2 : (threes >= 4) ? 3 :
-                            (fours >= 4) ? 4 : (fives >= 4) ? 5 : 6;
-        for (int i = 0; i < NUM_DICE; i++) {
-            if (dice[i] == value_to_keep) {
-                keep[i] = 1;  // Keep all dice that match the value
+    if (computer_scorecard[7] == 0) {
+        if (ones >= 4 || twos >= 4 || threes >= 4 || fours >= 4 || fives >= 4 || sixes >= 4) {
+            int value_to_keep = (ones >= 4) ? 1 : (twos >= 4) ? 2 : (threes >= 4) ? 3 :
+                                (fours >= 4) ? 4 : (fives >= 4) ? 5 : 6;
+            for (int i = 0; i < NUM_DICE; i++) {
+                if (dice[i] == value_to_keep) {
+                    keep[i] = 1;  // Keep all dice that match the value
+                }
             }
+            return;
         }
-        return;
     }
 
     // Full House (three of one value and two of another)
-    if ((ones == 3 || twos == 3 || threes == 3 || fours == 3 || fives == 3 || sixes == 3) &&
-        (ones == 2 || twos == 2 || threes == 2 || fours == 2 || fives == 2 || sixes == 2)) {
-        for (int i = 0; i < NUM_DICE; i++) {
-            keep[i] = 1;  // Keep all dice for a Full House
+    if (computer_scorecard[8] == 0) {
+        if ((ones == 3 || twos == 3 || threes == 3 || fours == 3 || fives == 3 || sixes == 3) &&
+            (ones == 2 || twos == 2 || threes == 2 || fours == 2 || fives == 2 || sixes == 2)) {
+            for (int i = 0; i < NUM_DICE; i++) {
+                keep[i] = 1;  // Keep all dice for a Full House
+            }
+            return;
         }
-        return;
     }
 
     // Check for Small or Large Straight
-    if ((ones && twos && threes && fours) || (twos && threes && fours && fives) || (threes && fours && fives && sixes)) {
-        for (int i = 0; i < NUM_DICE; i++) {
-            if ((dice[i] >= 1 && dice[i] <= 4) || (dice[i] >= 2 && dice[i] <= 5) || (dice[i] >= 3 && dice[i] <= 6)) {
-                keep[i] = 1;  // Keep dice for a Small Straight
+    if (computer_scorecard[9] == 0 || computer_scorecard[10] == 0) {
+        if ((ones && twos && threes && fours) || (twos && threes && fours && fives) || (threes && fours && fives && sixes)) {
+            for (int i = 0; i < NUM_DICE; i++) {
+                if ((dice[i] >= 1 && dice[i] <= 4) || (dice[i] >= 2 && dice[i] <= 5) || (dice[i] >= 3 && dice[i] <= 6)) {
+                    keep[i] = 1;  // Keep dice for a Small Straight
+                }
             }
+            return;
         }
-        return;
     }
 
     // Keep any pairs while it's chosen or not
-    for (int i = 0; i < 6; i++) {
-        if (computer_scorecard[i] == 0) {
-            if (ones >= 2 || twos >= 2 || threes >= 2 || fours >= 2 || fives >= 2 || sixes >= 2) {
-                int value_to_keep = (ones >= 2) ? 1 : (twos >= 2) ? 2 : (threes >= 2) ? 3 :
-                                    (fours >= 2) ? 4 : (fives >= 2) ? 5 : 6;
-                for (int i = 0; i < NUM_DICE; i++) {
-                    if (dice[i] == value_to_keep) {
-                        keep[i] = 1;  // Keep all dice that form a pair
-                    }
+    if (ones >= 2 || twos >= 2 || threes >= 2 || fours >= 2 || fives >= 2 || sixes >= 2) {
+        int value_to_keep = (ones >= 2) ? 1 : (twos >= 2) ? 2 : (threes >= 2) ? 3 :
+                            (fours >= 2) ? 4 : (fives >= 2) ? 5 : 6;
+        if (computer_scorecard[value_to_keep - 1] == 0) {  // Check if the category is available
+            for (int i = 0; i < NUM_DICE; i++) {
+                if (dice[i] == value_to_keep) {
+                    keep[i] = 1;  // Keep all dice that form a pair
                 }
             }
         }
-        return;
     }
 }
 
