@@ -102,7 +102,7 @@ void select_scoring(int dice[], int user_scorecard[], int user_score[]){
 
 // Calculate Score based on category
 int calculate_score(int dice[], int category, int user_score[]) {
-    int score = 0, ones = 0, twos = 0, threes = 0, fours = 0, fives = 0, sixs = 0;
+    int score = 0, ones = 0, twos = 0, threes = 0, fours = 0, fives = 0, sixs = 0, count_yatz=0, yatz_score=0;
     for (int i = 0; i < NUM_DICE; i++) {
         switch (dice[i]) {
             case 1: ones++; break;
@@ -161,9 +161,14 @@ int calculate_score(int dice[], int category, int user_score[]) {
             break;
         case 11: // Yahtzee
             if (ones == 5 || twos == 5 || threes == 5 || fours == 5 || fives == 5 || sixs == 5) {
-                score = 50;
+                count_yatz++;
+                user_score[category] += 50;
+                if(count_yatz > 0){
+                    user_score[category] += 100;
+                }
+                return;
             }else{
-                score = 0;
+                yatz_score = 0;
             }
             break;
         case 12: // Chance
@@ -172,7 +177,7 @@ int calculate_score(int dice[], int category, int user_score[]) {
         default:
             printf("Error.\n");
             break;
-    }   
+    }
      return score;
 }
 
