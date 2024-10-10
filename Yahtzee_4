@@ -6,10 +6,14 @@
 #define NUM_ROLLS 3
 #define NUM_ROUNDS 13
 
+int count_yatz_user = 0;
+int count_yatz_comp = 0;
+
 // Function declarations
 void user_turn(int dice[], int user_score[], int user_scorecard[]);
 void select_scoring(int dice[], int user_scorecard[], int user_score[]);
-int calculate_score(int dice[], int category, int user_score[]);
+int calculate_score_user(int dice[], int category, int user_score[], int *count_yatz_user);
+int calculate_score_comp(int dice[], int category, int user_score[], int *count_yatz_comp);
 int has_category_been_chosen(int category, int user_score[]);
 void roll_dice(int dice[], int keep_dices[]);
 void print_dice(int dice[]);
@@ -97,13 +101,13 @@ void select_scoring(int dice[], int user_scorecard[], int user_score[]){
         }
     } while (category < 0 || category > 12 || has_category_been_chosen(category, user_score));    
         
-    user_score[category] = calculate_score(dice, category, user_score);
+    user_score[category] = calculate_score_user(dice, category, user_score, &count_yatz_user);
     user_scorecard[category]= 1;
 }
 
 // Calculate Score based on category
-int calculate_score(int dice[], int category, int user_score[]) {
-    int score = 0, ones = 0, twos = 0, threes = 0, fours = 0, fives = 0, sixs = 0, count_yatz=0;
+int calculate_score_user(int dice[], int category, int user_score[], int *count_yatz_user) {
+    int score = 0, ones = 0, twos = 0, threes = 0, fours = 0, fives = 0, sixs = 0, yatz_score=0;
     for (int i = 0; i < NUM_DICE; i++) {
         switch (dice[i]) {
             case 1: ones++; break;
@@ -162,14 +166,95 @@ int calculate_score(int dice[], int category, int user_score[]) {
             break;
         case 11: // Yahtzee
             if (ones == 5 || twos == 5 || threes == 5 || fours == 5 || fives == 5 || sixs == 5) {
-                count_yatz++;
-                user_score[category] += 50;
-                if(count_yatz > 1){
-                    user_score[category] += 100;
+                if (*count_yatz_user == 0) {
+                    score = 50;
+                } else {
+                    score = 50 + *count_yatz_user * 100;
                 }
-                score = user_score[category];
+                (*count_yatz_user)++;
+            }else{
+                yatz_score = 0;
+            }
+            break;
+        case 12: // Chance
+            score = dice[0] + dice[1] + dice[2] + dice[3] + dice[4]; 
+            break;
+        default:
+            printf("Error.\n");
+            break;
+    }
+     return score;
+}
+
+//Computer Score Calculating
+int calculate_score_comp(int dice[], int category, int user_score[], int *count_yatz_comp) {
+    int score = 0, ones = 0, twos = 0, threes = 0, fours = 0, fives = 0, sixs = 0, yatz_score=0;
+    for (int i = 0; i < NUM_DICE; i++) {
+        switch (dice[i]) {
+            case 1: ones++; break;
+            case 2: twos++; break;
+            case 3: threes++; break;
+            case 4: fours++; break;
+            case 5: fives++; break;
+            case 6: sixs++; break;
+        }
+    }
+    
+    // Implement scoring based on category
+    switch (category) {
+        case 0: score = ones; break;  
+        case 1: score = twos * 2; break; 
+        case 2: score = threes * 3; break; 
+        case 3: score = fours * 4; break;
+        case 4: score = fives * 5; break; 
+        case 5: score = sixs * 6; break;  
+        case 6: // Three of a Kind
+            if(ones >= 3 || twos >= 3 || threes >= 3 || fours >= 3 || fives >= 3 || sixs >= 3){
+                score = dice[0] + dice[1] + dice[2] + dice[3] + dice[4];
             }else{
                 score = 0;
+            }
+            break;
+        case 7: // Four of a Kind
+            if(ones >= 4 || twos >= 4 || threes >= 4 || fours >= 4 || fives >= 4 || sixs >= 4){
+                score = dice[0] + dice[1] + dice[2] + dice[3] + dice[4];
+            }else{
+                score = 0;
+            }
+            break;
+        case 8:  // Full House
+            if ((ones == 3 || twos == 3 || threes == 3 || fours == 3 || fives == 3 || sixs == 3) &&
+                (ones == 2 || twos == 2 || threes == 2 || fours == 2 || fives == 2 || sixs == 2)) {
+                score = 25;
+            } else {
+                score = 0;
+            }
+            break;
+        case 9: // Small Straight
+            if ((ones && twos && threes && fours) || (twos && threes && fours && fives) || 
+                (threes && fours && fives && sixs)) {
+                score = 30;
+            }else{
+                score = 0;
+            }
+            break;
+        case 10: // Large Straight
+            if ((ones && twos && threes && fours && fives) || (twos && threes && fours && fives && sixs)) {
+                score = 40;
+            }else{
+                score = 0;
+            }
+            break;
+        case 11: // Yahtzee
+            if (ones == 5 || twos == 5 || threes == 5 || fours == 5 || fives == 5 || sixs == 5) {
+                if (*count_yatz_comp == 0) {
+                    score = 50;
+                } else {
+                    score = 50 + *count_yatz_comp * 100;
+                }
+                (*count_yatz_comp)++;
+            }else{
+                yatz_score = 0;
             }
             break;
         case 12: // Chance
@@ -192,7 +277,7 @@ int has_category_been_chosen(int category, int user_score[]) {
 void roll_dice(int dice[], int keep_dices[]) {
     for (int i = 0; i < NUM_DICE; i++) {
         if (keep_dices[i] == 0) {  // Roll dice that are not kept
-            dice[i] = rand() % 1+1;  // Assign a random number between 1 and 6
+            dice[i] = rand() % 6 + 1;  // Assign a random number between 1 and 6
         }
     }
     print_dice(dice);
@@ -231,7 +316,7 @@ void computer_turn(int dice[], int computer_score[], int computer_scorecard[]) {
     }
 
     int best_category = choose_best_category(dice, computer_score, computer_scorecard);
-    computer_score[best_category] = calculate_score(dice, best_category,  computer_score);
+    computer_score[best_category] = calculate_score_comp(dice, best_category,  computer_score, &count_yatz_comp);
     computer_scorecard[best_category] = 1;
 }
 
@@ -255,15 +340,14 @@ void evaluate_dice(int dice[], int keep[], int computer_scorecard[]) {
         keep[i] = 0;
     }
 
-    // Yahtzee (five of the same number)
-    if (computer_scorecard[11] == 0) {
-        if (ones == 5 || twos == 5 || threes == 5 || fours == 5 || fives == 5 || sixes == 5) {
-            for (int i = 0; i < NUM_DICE; i++) {
-                keep[i] = 1;  // Keep all dice for Yahtzee
-            }
-            return;
+    //Yahtzee
+    if (ones == 5 || twos == 5 || threes == 5 || fours == 5 || fives == 5 || sixes == 5) {
+        for (int i = 0; i < NUM_DICE; i++) {
+            keep[i] = 1;  // Keep all dice for Yahtzee
         }
+        return;
     }
+    
 
     // Three-of-a-kind
     if (computer_scorecard[6] == 0) {
@@ -348,6 +432,7 @@ int choose_best_category(int dice[], int computer_score[], int computer_scorecar
 
     // Check for the highest scoring category based on the dice roll
     for (int i = 0; i < NUM_ROUNDS; i++) {
+        computer_scorecard[11]=0;
         if (computer_scorecard[i] == 0) {  // Only evaluate unchosen categories
             int score = 0;
             
@@ -412,164 +497,6 @@ int choose_best_category(int dice[], int computer_score[], int computer_scorecar
     return category;
 }
 
-void round_one(){
-    printf(" /$$$$$$$                                      /$$        /$$$$$$                     \n");
-    printf("| $$__  $$                                    | $$       /$$__  $$                    \n");
-    printf("| $$  \\ $$  /$$$$$$  /$$   /$$ /$$$$$$$   /$$$$$$$      | $$  \\ $$ /$$$$$$$   /$$$$$$ \n");
-    printf("| $$$$$$$/ /$$__  $$| $$  | $$| $$__  $$ /$$__  $$      | $$  | $$| $$__  $$ /$$__  $$\n");
-    printf("| $$__  $$| $$  \\ $$| $$  | $$| $$  \\ $$| $$  | $$      | $$  | $$| $$  \\ $$| $$$$$$$$\n");
-    printf("| $$  \\ $$| $$  | $$| $$  | $$| $$  | $$| $$  | $$      | $$  | $$| $$  | $$| $$_____/\n");
-    printf("| $$  | $$|  $$$$$$/|  $$$$$$/| $$  | $$|  $$$$$$$      |  $$$$$$/| $$  | $$|  $$$$$$$\n");
-    printf("|__/  |__/ \\______/  \\______/ |__/  |__/ \\_______/       \\______/ |__/  |__/ \\_______/\n");
-}
-
-void round_two(){
-    printf("\n");
-    printf(" /$$$$$$$                                      /$$       /$$$$$$$$                     \n");
-    printf("| $$__  $$                                    | $$      |__  $$__/                     \n");
-    printf("| $$  \\ $$  /$$$$$$  /$$   /$$ /$$$$$$$   /$$$$$$$         | $$ /$$  /$$  /$$  /$$$$$$ \n");
-    printf("| $$$$$$$/ /$$__  $$| $$  | $$| $$__  $$ /$$__  $$         | $$| $$ | $$ | $$ /$$__  $$\n");
-    printf("| $$__  $$| $$  \\ $$| $$  | $$| $$  \\ $$| $$  | $$         | $$| $$ | $$ | $$| $$  \\ $$\n");
-    printf("| $$  \\ $$| $$  | $$| $$  | $$| $$  | $$| $$  | $$         | $$| $$ | $$ | $$| $$  | $$\n");
-    printf("| $$  | $$|  $$$$$$/|  $$$$$$/| $$  | $$|  $$$$$$$         | $$|  $$$$$/$$$$/|  $$$$$$/\n");
-    printf("|__/  |__/ \\______/  \\______/ |__/  |__/ \\_______/         |__/ \\_____/\\___/  \\______/ \n");
-}
-
-void round_three(){
-    printf("\n");
-    printf(" /$$$$$$$                                      /$$       /$$$$$$$$ /$$                                     \n");
-    printf("| $$__  $$                                    | $$      |__  $$__/| $$                                     \n");
-    printf("| $$  \\ $$  /$$$$$$  /$$   /$$ /$$$$$$$   /$$$$$$$         | $$   | $$$$$$$   /$$$$$$   /$$$$$$   /$$$$$$ \n");
-    printf("| $$$$$$$/ /$$__  $$| $$  | $$| $$__  $$ /$$__  $$         | $$   | $$__  $$ /$$__  $$ /$$__  $$ /$$__  $$\n");
-    printf("| $$__  $$| $$  \\ $$| $$  | $$| $$  \\ $$| $$  | $$         | $$   | $$  \\ $$| $$  \\__/| $$$$$$$$| $$$$$$$$\n");
-    printf("| $$  \\ $$| $$  | $$| $$  | $$| $$  | $$| $$  | $$         | $$   | $$  | $$| $$      | $$_____/| $$_____/\n");
-    printf("| $$  | $$|  $$$$$$/|  $$$$$$/| $$  | $$|  $$$$$$$         | $$   | $$  | $$| $$      |  $$$$$$$|  $$$$$$$\n");
-    printf("|__/  |__/ \\______/  \\______/ |__/  |__/ \\_______/         |__/   |__/  |__/|__/       \\_______/ \\_______/\n");
-}
-
-void round_four(){
-    printf("\n");
-    printf(" /$$$$$$$                                      /$$       /$$$$$$$$                           \n");
-    printf("| $$__  $$                                    | $$      | $$_____/                           \n");
-    printf("| $$  \\ $$  /$$$$$$  /$$   /$$ /$$$$$$$   /$$$$$$$      | $$     /$$$$$$  /$$   /$$  /$$$$$$ \n");
-    printf("| $$$$$$$/ /$$__  $$| $$  | $$| $$__  $$ /$$__  $$      | $$$$$ /$$__  $$| $$  | $$ /$$__  $$\n");
-    printf("| $$__  $$| $$  \\ $$| $$  | $$| $$  \\ $$| $$  | $$      | $$__/| $$  \\ $$| $$  | $$| $$  \\__/\n");
-    printf("| $$  \\ $$| $$  | $$| $$  | $$| $$  | $$| $$  | $$      | $$   | $$  | $$| $$  | $$| $$      \n");
-    printf("| $$  | $$|  $$$$$$/|  $$$$$$/| $$  | $$|  $$$$$$$      | $$   |  $$$$$$/|  $$$$$$/| $$      \n");
-    printf("|__/  |__/ \\______/  \\______/ |__/  |__/ \\_______/      |__/    \\______/  \\______/ |__/      \n");
-}
-
-void round_five(){
-    printf("\n");
-    printf(" /$$$$$$$                                      /$$       /$$$$$$$$ /$$                    \n");
-    printf("| $$__  $$                                    | $$      | $$_____/|__/                    \n");
-    printf("| $$  \\ $$  /$$$$$$  /$$   /$$ /$$$$$$$   /$$$$$$$      | $$       /$$ /$$    /$$ /$$$$$$ \n");
-    printf("| $$$$$$$/ /$$__  $$| $$  | $$| $$__  $$ /$$__  $$      | $$$$$   | $$|  $$  /$$//$$__  $$\n");
-    printf("| $$__  $$| $$  \\ $$| $$  | $$| $$  \\ $$| $$  | $$      | $$__/   | $$ \\  $$/$$/| $$$$$$$$\n");
-    printf("| $$  \\ $$| $$  | $$| $$  | $$| $$  | $$| $$  | $$      | $$      | $$  \\  $$$/ | $$_____/\n");
-    printf("| $$  | $$|  $$$$$$/|  $$$$$$/| $$  | $$|  $$$$$$$      | $$      | $$   \\  $/  |  $$$$$$$\n");
-    printf("|__/  |__/ \\______/  \\______/ |__/  |__/ \\_______/      |__/      |__/    \\_/    \\_______/\n");
-}
-
-void round_six(){
-    printf("\n");
-    printf(" /$$$$$$$                                      /$$        /$$$$$$  /$$          \n");
-    printf("| $$__  $$                                    | $$       /$$__  $$|__/          \n");
-    printf("| $$  \\ $$  /$$$$$$  /$$   /$$ /$$$$$$$   /$$$$$$$      | $$  \\__/ /$$ /$$   /$$\n");
-    printf("| $$$$$$$/ /$$__  $$| $$  | $$| $$__  $$ /$$__  $$      |  $$$$$$ | $$|  $$ /$$/\n");
-    printf("| $$__  $$| $$  \\ $$| $$  | $$| $$  \\ $$| $$  | $$       \\____  $$| $$ \\  $$$$/ \n");
-    printf("| $$  \\ $$| $$  | $$| $$  | $$| $$  | $$| $$  | $$       /$$  \\ $$| $$  >$$  $$ \n");
-    printf("| $$  | $$|  $$$$$$/|  $$$$$$/| $$  | $$|  $$$$$$$      |  $$$$$$/| $$ /$$/\\  $$\n");
-    printf("|__/  |__/ \\______/  \\______/ |__/  |__/ \\_______/       \\______/ |__/|__/  \\__/\n");
-}
-
-void round_seven(){
-    printf("\n");
-    printf(" /$$$$$$$                                      /$$        /$$$$$$                                         \n");
-    printf("| $$__  $$                                    | $$       /$$__  $$                                        \n");
-    printf("| $$  \\ $$  /$$$$$$  /$$   /$$ /$$$$$$$   /$$$$$$$      | $$  \\__/  /$$$$$$  /$$    /$$ /$$$$$$  /$$$$$$$ \n");
-    printf("| $$$$$$$/ /$$__  $$| $$  | $$| $$__  $$ /$$__  $$      |  $$$$$$  /$$__  $$|  $$  /$$//$$__  $$| $$__  $$\n");
-    printf("| $$__  $$| $$  \\ $$| $$  | $$| $$  \\ $$| $$  | $$       \\____  $$| $$$$$$$$ \\  $$/$$/| $$$$$$$$| $$  \\ $$\n");
-    printf("| $$  \\ $$| $$  | $$| $$  | $$| $$  | $$| $$  | $$       /$$  \\ $$| $$_____/  \\  $$$/ | $$_____/| $$  | $$\n");
-    printf("| $$  | $$|  $$$$$$/|  $$$$$$/| $$  | $$|  $$$$$$$      |  $$$$$$/|  $$$$$$$   \\  $/  |  $$$$$$$| $$  | $$\n");
-    printf("|__/  |__/ \\______/  \\______/ |__/  |__/ \\_______/       \\______/  \\_______/    \\_/    \\_______/|__/  |__/\n");
-}
-
-void round_eight(){
-    printf("\n");
-    printf(" /$$$$$$$                                      /$$       /$$$$$$$$ /$$           /$$         /$$    \n");
-    printf("| $$__  $$                                    | $$      | $$_____/|__/          | $$        | $$    \n");
-    printf("| $$  \\ $$  /$$$$$$  /$$   /$$ /$$$$$$$   /$$$$$$$      | $$       /$$  /$$$$$$ | $$$$$$$  /$$$$$$  \n");
-    printf("| $$$$$$$/ /$$__  $$| $$  | $$| $$__  $$ /$$__  $$      | $$$$$   | $$ /$$__  $$| $$__  $$|_  $$_/  \n");
-    printf("| $$__  $$| $$  \\ $$| $$  | $$| $$  \\ $$| $$  | $$      | $$__/   | $$| $$  \\ $$| $$  \\ $$  | $$    \n");
-    printf("| $$  \\ $$| $$  | $$| $$  | $$| $$  | $$| $$  | $$      | $$      | $$| $$  | $$| $$  | $$  | $$ /$$ \n");
-    printf("| $$  | $$|  $$$$$$/|  $$$$$$/| $$  | $$|  $$$$$$$      | $$$$$$$$| $$|  $$$$$$$| $$  | $$  |  $$$$/ \n");
-    printf("|__/  |__/ \\______/  \\______/ |__/  |__/ \\_______/      |________/|__/ \\____  $$|__/  |__/   \\___/  \n");
-    printf("                                                                       /$$  \\ $$                    \n");
-    printf("                                                                      |  $$$$$$/                    \n");
-    printf("                                                                       \\______/                      \n");
-}
-
-void round_nine(){
-    printf("\n");
-    printf(" /$$$$$$$                                      /$$       /$$   /$$ /$$                    \n");
-    printf("| $$__  $$                                    | $$      | $$$ | $$|__/                    \n");
-    printf("| $$  \\ $$  /$$$$$$  /$$   /$$ /$$$$$$$   /$$$$$$$      | $$$$| $$ /$$ /$$$$$$$   /$$$$$$ \n");
-    printf("| $$$$$$$/ /$$__  $$| $$  | $$| $$__  $$ /$$__  $$      | $$ $$ $$| $$| $$__  $$ /$$__  $$\n");
-    printf("| $$__  $$| $$  \\ $$| $$  | $$| $$  \\ $$| $$  | $$      | $$  $$$$| $$| $$  \\ $$| $$$$$$$$\n");
-    printf("| $$  \\ $$| $$  | $$| $$  | $$| $$  | $$| $$  | $$      | $$\\  $$$| $$| $$  | $$| $$_____/ \n");
-    printf("| $$  | $$|  $$$$$$/|  $$$$$$/| $$  | $$|  $$$$$$$      | $$ \\  $$| $$| $$  | $$|  $$$$$$$ \n");
-    printf("|__/  |__/ \\______/  \\______/ |__/  |__/ \\_______/      |__/  \\__/|__/|__/  |__/ \\_______/\n");
-}
-
-void round_ten(){
-    printf("\n");
-    printf(" /$$$$$$$                                      /$$       /$$$$$$$$                 \n");
-    printf("| $$__  $$                                    | $$      |__  $$__/                 \n");
-    printf("| $$  \\ $$  /$$$$$$  /$$   /$$ /$$$$$$$   /$$$$$$$         | $$  /$$$$$$  /$$$$$$$ \n");
-    printf("| $$$$$$$/ /$$__  $$| $$  | $$| $$__  $$ /$$__  $$         | $$ /$$__  $$| $$__  $$\n");
-    printf("| $$__  $$| $$  \\ $$| $$  | $$| $$  \\ $$| $$  | $$         | $$| $$$$$$$$| $$  \\ $$\n");
-    printf("| $$  \\ $$| $$  | $$| $$  | $$| $$  | $$| $$  | $$         | $$| $$_____/| $$  | $$\n");
-    printf("| $$  | $$|  $$$$$$/|  $$$$$$/| $$  | $$|  $$$$$$$         | $$|  $$$$$$$| $$  | $$\n");
-    printf("|__/  |__/ \\______/  \\______/ |__/  |__/ \\_______/         |__/ \\_______/|__/  |__/\n");
-}
-
-void round_eleven(){
-    printf("\n");
-    printf(" /$$$$$$$                                      /$$       /$$$$$$$$ /$$                                        \n");
-    printf("| $$__  $$                                    | $$      | $$_____/| $$                                        \n");
-    printf("| $$  \\ $$  /$$$$$$  /$$   /$$ /$$$$$$$   /$$$$$$$      | $$      | $$  /$$$$$$  /$$    /$$ /$$$$$$  /$$$$$$$ \n");
-    printf("| $$$$$$$/ /$$__  $$| $$  | $$| $$__  $$ /$$__  $$      | $$$$$   | $$ /$$__  $$|  $$  /$$//$$__  $$| $$__  $$\n");
-    printf("| $$__  $$| $$  \\ $$| $$  | $$| $$  \\ $$| $$  | $$      | $$__/   | $$| $$$$$$$$ \\  $$/$$/| $$$$$$$$| $$  \\ $$\n");
-    printf("| $$  \\ $$| $$  | $$| $$  | $$| $$  | $$| $$  | $$      | $$      | $$| $$_____/  \\  $$$/ | $$_____/| $$  | $$\n");
-    printf("| $$  | $$|  $$$$$$/|  $$$$$$/| $$  | $$|  $$$$$$$      | $$$$$$$$| $$|  $$$$$$$   \\  $/  |  $$$$$$$| $$  | $$\n");
-    printf("|__/  |__/ \\______/  \\______/ |__/  |__/ \\_______/      |________/|__/ \\_______/    \\_/    \\_______/|__/  |__/\n");
-}
-
-void round_twelve(){
-    printf("\n");
-    printf(" /$$$$$$$                                      /$$       /$$$$$$$$                      /$$                    \n");
-    printf("| $$__  $$                                    | $$      |__  $$__/                     | $$                    \n");
-    printf("| $$  \\ $$  /$$$$$$  /$$   /$$ /$$$$$$$   /$$$$$$$         | $$ /$$  /$$  /$$  /$$$$$$ | $$ /$$    /$$ /$$$$$$ \n");
-    printf("| $$$$$$$/ /$$__  $$| $$  | $$| $$__  $$ /$$__  $$         | $$| $$ | $$ | $$ /$$__  $$| $$|  $$  /$$//$$__  $$\n");
-    printf("| $$__  $$| $$  \\ $$| $$  | $$| $$  \\ $$| $$  | $$         | $$| $$ | $$ | $$| $$$$$$$$| $$ \\  $$/$$/| $$$$$$$$\n");
-    printf("| $$  \\ $$| $$  | $$| $$  | $$| $$  | $$| $$  | $$         | $$| $$ | $$ | $$| $$_____/| $$  \\  $$$/ | $$_____/ \n");
-    printf("| $$  | $$|  $$$$$$/|  $$$$$$/| $$  | $$|  $$$$$$$         | $$|  $$$$$/$$$$/|  $$$$$$$| $$   \\  $/  |  $$$$$$$ \n");
-    printf("|__/  |__/ \\______/  \\______/ |__/  |__/ \\_______/         |__/ \\_____/\\___/  \\_______/|__/    \\_/    \\_______/\n");
-}
-
-void round_thirteen(){
-    printf("\n");
-    printf(" /$$$$$$$                                      /$$       /$$$$$$$$ /$$       /$$             /$$                                  \n");
-    printf("| $$__  $$                                    | $$      |__  $$__/| $$      |__/            | $$                                  \n");
-    printf("| $$  \\ $$  /$$$$$$  /$$   /$$ /$$$$$$$   /$$$$$$$         | $$   | $$$$$$$  /$$  /$$$$$$  /$$$$$$    /$$$$$$   /$$$$$$  /$$$$$$$ \n");
-    printf("| $$$$$$$/ /$$__  $$| $$  | $$| $$__  $$ /$$__  $$         | $$   | $$__  $$| $$ /$$__  $$|_  $$_/   /$$__  $$ /$$__  $$| $$__  $$\n");
-    printf("| $$__  $$| $$  \\ $$| $$  | $$| $$  \\ $$| $$  | $$         | $$   | $$  \\ $$| $$| $$  \\__/  | $$    | $$$$$$$$| $$$$$$$$| $$  \\ $$\n");
-    printf("| $$  \\ $$| $$  | $$| $$  | $$| $$  | $$| $$  | $$         | $$   | $$  | $$| $$| $$        | $$ /$$| $$_____/| $$_____/| $$  | $$\n");
-    printf("| $$  | $$|  $$$$$$/|  $$$$$$/| $$  | $$|  $$$$$$$         | $$   | $$  | $$| $$| $$        |  $$$$/|  $$$$$$$|  $$$$$$$| $$  | $$\n");
-    printf("|__/  |__/ \\______/  \\______/ |__/  |__/ \\_______/         |__/   |__/  |__/|__/|__/         \\___/   \\_______/ \\_______/|__/  |__/\n");
-}
-
 int main() {
     srand(time(NULL));
 
@@ -578,28 +505,8 @@ int main() {
     int user_scorecard[NUM_ROUNDS]={0};
     int computer_scorecard[NUM_ROUNDS]={0};
     int dice[NUM_DICE] = {0};
-    int count_Yahtzee_user=0;
-    int count_Yahtzee_co=0;
     
     for (int i = 0; i < NUM_ROUNDS; i++) {
-        switch (i){
-        case 0:round_one(); break;
-        case 1:round_two(); break;
-        case 2:round_three(); break;
-        case 3:round_four(); break;
-        case 4:round_five(); break;
-        case 5:round_six(); break;
-        case 6:round_seven(); break;
-        case 7:round_eight(); break;
-        case 8:round_nine(); break;
-        case 9:round_ten(); break;
-        case 10:round_eleven(); break;
-        case 11:round_twelve(); break;
-        case 12:round_thirteen(); break;
-        default:break;
-        }
-        
-        
         // Human Player
         printf("User's turn:\n");
         user_turn(dice, user_score, user_scorecard);
@@ -612,16 +519,39 @@ int main() {
         printf("Computer's score so far:\n");
         print_score(computer_score);
     }
-    for(int i = 0; i < NUM_ROUNDS; i++){
-
-    }
     
     // Final Scores
     int human_total = 0, computer_total = 0;
-    for (int i = 0; i < NUM_ROUNDS; i++) {
-        human_total += user_score[i];
-        computer_total += computer_score[i];
+    int human_temp = 0, computer_temp = 0;
+
+    // Sum only the first 6
+    for (int i = 0; i < 6; i++) {
+        human_temp += user_score[i];
+        computer_temp += computer_score[i];
     }
+
+    // Apply the 60-point bonus
+    if (human_temp > 50) {
+        human_temp += 100;
+    }
+    if (computer_temp > 50) {
+        computer_temp += 100;
+    }
+
+    // Now, add the upper section (including bonus if applicable) to the total
+    human_total = human_temp;
+    computer_total = computer_temp;
+        for (int i = 0; i < NUM_ROUNDS; i++) {
+            if(i == 6){
+                if(human_total > 60){
+                    human_total+=60;
+                }else if(computer_total > 60){
+                    computer_total+=60;
+                }
+            }
+            human_total += user_score[i];
+            computer_total += computer_score[i];
+        }
     
     printf("\nFinal Scores: Human = %d and Computer = %d\n", human_total, computer_total);
     if (human_total > computer_total)
