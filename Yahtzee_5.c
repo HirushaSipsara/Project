@@ -400,14 +400,13 @@ void evaluate_dice(int dice[], int keep[], int computer_scorecard[]) {
         }
     }
 
-    // Keep any pairs while it's chosen or not
-    if (ones >= 2 || twos >= 2 || threes >= 2 || fours >= 2 || fives >= 2 || sixes >= 2) {
-        int value_to_keep = (ones >= 2) ? 1 : (twos >= 2) ? 2 : (threes >= 2) ? 3 :
-                            (fours >= 2) ? 4 : (fives >= 2) ? 5 : 6;
+    // Keep any pairs while it's chosen or not (6 to 1 search)
+    if (sixes >= 2 || fives >= 2 || fours >= 2 || threes >= 2 || twos >= 2 || ones >= 2) {
+        int value_to_keep = (sixes >= 2) ? 6 : (fives >= 2) ? 5 : (fours >= 2) ? 4 : (threes >= 2) ? 3 : (twos >= 2) ? 2 : 1;
         if (computer_scorecard[value_to_keep - 1] == 0) {  // Check if the category is available
             for (int i = 0; i < NUM_DICE; i++) {
                 if (dice[i] == value_to_keep) {
-                    keep[i] = 1;  // Keep all dice that form a pair
+                    keep[i] = 1;  // Keep all dice that form a pair 
                 }
             }
         }
@@ -730,12 +729,23 @@ int main() {
         }
     
     printf("\nFinal Scores: Human = %d and Computer = %d\n", human_total, computer_total);
-    if (human_total > computer_total)
+    if(human_total > computer_total){
         printf("Human wins!\n");
-    else if (computer_total > human_total)
+    } 
+    else if (computer_total > human_total){
         printf("Computer wins!\n");
-    else
+    }else{
         printf("It's a tie!\n");
+    }
 
+    printf("\nGame Over!\n");
+    printf("Final User Score: ");
+    print_score(user_score);
+    printf("Final Computer Score: ");
+    print_score(computer_score);
+
+    printf("\nThank you for playing! Press Enter to exit.\n");
+    getchar();  // Wait for user input
+    getchar();  // To
     return 0;
 }
