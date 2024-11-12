@@ -399,6 +399,7 @@ void evaluate_dice(int dice[], int keep[], int computer_scorecard[]) {
             return;
         }
     }
+    
 
     // Keep any pairs while it's chosen or not
     if (ones >= 2 || twos >= 2 || threes >= 2 || fours >= 2 || fives >= 2 || sixes >= 2) {

@@ -6,13 +6,25 @@
 #define NUM_DICE 5
 #define MAX_ROLLS 3
 #define NUM_ROUNDS 13
-#define BONUS_THRESHOLD 63  // Updated from 63 to 60
+#define BONUS_THRESHOLD 63  
 #define BONUS_SCORE 35
 #define YAHTZEE_SCORE 50
 #define EXTRA_YAHTZEE_BONUS 100
 
 // Scoring categories
-enum {ONES, TWOS, THREES, FOURS, FIVES, SIXES, THREE_OF_A_KIND, FOUR_OF_A_KIND, FULL_HOUSE, SMALL_STRAIGHT, LARGE_STRAIGHT, YAHTZEE, CHANCE};
+#define ONES 0
+#define TWOS 1
+#define THREES 2
+#define FOURS 3
+#define FIVES 4
+#define SIXES 5
+#define THREE_OF_A_KIND 6
+#define FOUR_OF_A_KIND 7
+#define FULL_HOUSE 8
+#define SMALL_STRAIGHT 9
+#define LARGE_STRAIGHT 10
+#define YAHTZEE 11
+#define CHANCE 12
 
 // Function to roll the dice
 void roll_dice(int dice[NUM_DICE]) {
@@ -340,6 +352,10 @@ int main() {
     } else {
         printf("\nIt's a tie!\n");
     }
+    // Game over, show final scores
 
-    return 0;
+printf("\nThank you for playing! Press Enter to exit.\n");
+getchar();  // Wait for user input
+getchar();  // To capture the extra newline character
+ return 0;
 }

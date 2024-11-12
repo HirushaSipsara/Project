@@ -420,46 +420,51 @@ void evaluate_dice(int dice[], int keep[], int computer_scorecard[], int round) 
         }
     }
 
-    // Check for Small Straight
-    if (computer_scorecard[9] == 0) {
-        if ((ones && twos && threes && fours) || (twos && threes && fours && fives) || (threes && fours && fives && sixes)) {
-            for (int i = 0; i < NUM_DICE; i++) {
-                if ((dice[i] >= 1 && dice[i] <= 4) || (dice[i] >= 2 && dice[i] <= 5) || (dice[i] >= 3 && dice[i] <= 6)) {
-                    keep[i] = 1;  
-                }
-            }
-            return;
-        }
-    }
-
-    // Check for Large Straight
-    if (computer_scorecard[10] == 0) {
-        if ((ones && twos && threes && fours && fives) || (twos && threes && fours && fives && sixes)) {
-            for (int i = 0; i < NUM_DICE; i++) {
-                if ((dice[i] >= 1 && dice[i] <= 5) || (dice[i] >= 2 && dice[i] <= 6)) {
-                    keep[i] = 1;  
-                }
-            }
-            return;
-        }
-    }
-
     // 2. Improve Straight Detection by Sorting and Checking for Consecutive Values
     int sorted_dice[NUM_DICE];
     memcpy(sorted_dice, dice, NUM_DICE * sizeof(int));
     for (int i = 0; i < NUM_DICE - 1; i++) {
         for (int j = 0; j < NUM_DICE - i - 1; j++) {
             if (sorted_dice[j] > sorted_dice[j + 1]) {
-                int temp = sorted_dice[j];
-                sorted_dice[j] = sorted_dice[j + 1];
-                sorted_dice[j + 1] = temp;
+                    int temp = sorted_dice[j];
+                    sorted_dice[j] = sorted_dice[j + 1];
+                    sorted_dice[j + 1] = temp;
             }
         }
     }
 
+    // Check for Small or Large Straight
+    if (computer_scorecard[9] == 0 || computer_scorecard[10] == 0) {
+        // Check for Small Straight (sequence of 4 consecutive numbers)
+        if (computer_scorecard[9] == 0) {
+            if ((sorted_dice[0] == sorted_dice[1] - 1 &&
+                sorted_dice[1] == sorted_dice[2] - 1 &&
+                sorted_dice[2] == sorted_dice[3] - 1) ||
+                (sorted_dice[1] == sorted_dice[2] - 1 &&
+                sorted_dice[2] == sorted_dice[3] - 1 &&
+                sorted_dice[3] == sorted_dice[4] - 1)) {
+                for (int i = 0; i < NUM_DICE; i++) {
+                    keep[i] = 1;  // Keep dice for Small Straight
+                }
+                return;
+            }
+        }
+
+        // Check for Large Straight (sequence of 5 consecutive numbers)
+        if (computer_scorecard[10] == 0) {
+            if ((sorted_dice[0] == 1 && sorted_dice[1] == 2 &&
+                sorted_dice[2] == 3 && sorted_dice[3] == 4 && sorted_dice[4] == 5) ||
+                (sorted_dice[0] == 2 && sorted_dice[1] == 3 &&
+                sorted_dice[2] == 4 && sorted_dice[3] == 5 && sorted_dice[4] == 6)) {
+                for (int i = 0; i < NUM_DICE; i++) {
+                    keep[i] = 1;  // Keep all dice for Large Straight
+                }
+                return;
+            }
+        }
+    }
     // 3. Refine Pair-Keeping Logic
-    if ((ones == 2 || twos == 2 || threes == 2 || fours == 2 || fives == 2 || sixes == 2) &&
-        (computer_scorecard[8] == 0 || computer_scorecard[7] == 0)) { // Full House or Four-of-a-Kind
+    if ((ones == 2 || twos == 2 || threes == 2 || fours == 2 || fives == 2 || sixes == 2) && (computer_scorecard[8] == 0 || computer_scorecard[7] == 0)) { // Full House or Four-of-a-Kind
         int value_to_keep = (ones == 2) ? 1 : (twos == 2) ? 2 : (threes == 2) ? 3 :
                             (fours == 2) ? 4 : (fives == 2) ? 5 : 6;
         for (int i = 0; i < NUM_DICE; i++) {
@@ -498,7 +503,6 @@ void evaluate_dice(int dice[], int keep[], int computer_scorecard[], int round) 
             }
         }
     }
-
 }
 
 // Choose the best scoring category for the computer
